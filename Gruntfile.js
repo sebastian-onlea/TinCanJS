@@ -45,6 +45,12 @@ module.exports = function(grunt) {
         // needed for IE and Safari for TextDecoder/TextEncoder
         "node_modules/text-encoding/lib/encoding.js"
     );
+    var browserLocalFileList = browserFileList
+        .slice()
+        .map(function (f) {
+            return f.replace("/Browser.js", "/BrowserLocal.js");
+        });
+
     nodeFileList.push(
         "src/Environment/Node.js"
     );
@@ -107,6 +113,7 @@ module.exports = function(grunt) {
             dist: {
                 files: {
                     "build/tincan.js": browserFileList,
+                    "build/tincan-local.js": browserLocalFileList,
                     "build/tincan-node.js": nodeFileList
                 },
                 nonull: true
@@ -116,7 +123,8 @@ module.exports = function(grunt) {
         uglify: {
             dist: {
                 files: {
-                    "build/tincan-min.js": ["build/tincan.js"]
+                    "build/tincan-min.js": ["build/tincan.js"],
+                    "build/tincan-local-min.js": ["build/tincan-local.js"]
                 },
                 options: {
                     sourceMap: true
