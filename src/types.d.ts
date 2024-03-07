@@ -30,6 +30,15 @@ declare interface RequestOptions {
         headers?: any;
         callback?: function | undefined;
 }
+
+declare interface LRSOptions {
+    endpoint: string|null;
+    version: string|null;
+    auth: string|null;
+    allowFail: boolean|null;
+    extended: object|null;
+}
+
 declare interface RequestResultSync {
     err: number;
     xhr: XMLHttpRequest;
