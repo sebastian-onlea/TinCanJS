@@ -1,6 +1,6 @@
 {
-  "name": "tincan",
-  "version": "0.50.0",
+  "name": "@onlea/tincan",
+  "version": "0.50.1-local.0",
   "homepage": "http://rusticisoftware.github.com/TinCanJS/",
   "authors": [
     "Brian J. Miller <brian.miller@rusticisoftware.com>"
