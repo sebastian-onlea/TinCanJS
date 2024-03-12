@@ -7932,6 +7932,8 @@ TinCan client library
     Attachment._defaultEncoding = "utf-8";
 }());
 
+/// <reference types="../types.d.ts" />
+
 /*
     Copyright 2012-2013 Rustici Software
 
@@ -7952,21 +7954,29 @@ TinCan client library
 TinCan client library
 
 @module TinCan
-@submodule TinCan.Environment.Browser
+@submodule TinCan.Environment.BrowserLocal
 **/
 (function () {
-    /* globals window, XMLHttpRequest, XDomainRequest, Blob */
+    /* globals window, XMLHttpRequest, XDomainRequest, Blob, setTimeout */
     "use strict";
-    var LOG_SRC = "Environment.Browser",
+    var LOG_SRC = "Environment.BrowserLocal",
+        BROWSER_LOCAL_FAKE_ENDPOINT = "browser-local-fake-endpoint/",
+        /** @type {(xhr: XMLHttpRequest, cfg: TinCanOptions, control: unknown) => RequestResult} */
         requestComplete,
         __IEModeConversion,
+        /** @type {RequestFn} */
         nativeRequest,
+        /** @type {RequestFn} */
         xdrRequest,
+        /** @type {RequestFn} */
+        localRequest,
         __createJSONSegment,
         __createAttachmentSegment,
         __delay,
         env = {},
-        log = TinCan.prototype.log;
+        log = TinCan.prototype.log,
+        __postMessage,
+        __messageRequest;
 
     if (typeof window === "undefined") {
         log("'window' not defined", LOG_SRC);
@@ -8167,10 +8177,13 @@ TinCan client library
         /*global ActiveXObject*/
         log("sendRequest using XMLHttpRequest", LOG_SRC);
         var self = this,
+            /** @type {XMLHttpRequest | ActiveXObject} */
             xhr,
             prop,
+            /** @type {string[]} */
             pairs = [],
             data,
+            /** @type {RequestCompleteControl} */
             control = {
                 finished: false,
                 fakeStatus: null
@@ -8287,6 +8300,7 @@ TinCan client library
     xdrRequest = function (fullUrl, headers, cfg) {
         log("sendRequest using XDomainRequest", LOG_SRC);
         var self = this,
+            /** @type {XDomainRequest} */ 
             xhr,
             pairs = [],
             data,
@@ -8406,6 +8420,55 @@ TinCan client library
         return xhr;
     };
 
+    localRequest = function (fullUrl, headers, cfg) {
+        /*global ActiveXObject*/
+        log("sendRequest using local adapter", LOG_SRC);
+        var 
+            /** @type {XMLHttpRequest | ActiveXObject} */
+            xhr,
+            prop,
+            /** @type {string[]} */
+            pairs = [],
+            /** @type {RequestCompleteControl} */
+            control = {
+                finished: false,
+                fakeStatus: null
+            },
+            async = typeof cfg.callback !== "undefined";
+
+        xhr = { status: "undefined" };
+        log("sendRequest using local adapter - async: " + async, LOG_SRC);
+
+        for (prop in cfg.params) {
+            if (cfg.params.hasOwnProperty(prop)) {
+                pairs.push(prop + "=" + encodeURIComponent(cfg.params[prop]));
+            }
+        }
+
+        if (typeof window.postMessage === "function") {
+            if (!async) {
+                throw new Error("unexpected non-async request for postMessage() handler");
+            }
+            __postMessage(__messageRequest(cfg, headers));
+        }
+
+        control.fakeStatus = 200;
+        control.finished = true;
+        if (async) {
+            setTimeout(function(){cfg.callback();}, 100);
+        }
+        return requestComplete.call(this, xhr, cfg, control);
+    };
+
+    if (typeof window.postMessage === "function") {
+        window.addEventListener("message", function (event) {
+            if (event.origin !== window.location.origin) { return; }
+            if (!event.hasOwnProperty("_tincan") || event._tincan !== "response") { return; }
+            log("received response message:", event);
+        });
+    }
+
+
     //
     // Override LRS' init method to set up our request handling
     // capabilities
@@ -8432,6 +8495,21 @@ TinCan client library
         // which only applies in a browser setting
         //
         this._IEModeConversion = __IEModeConversion;
+
+        if (this.endpoint === BROWSER_LOCAL_FAKE_ENDPOINT) {
+            this._makeRequest = localRequest;
+            this.saveStatement({
+                id: "http://adlnet.gov/expapi/verbs/initialized",
+                display: {
+                  "en-US": "initialized"
+                }
+              });
+            return;
+        }
+
+        //
+        // on the off chance that we're using some other kind of LRS here
+        //
 
         urlParts = this.endpoint.toLowerCase().match(/([A-Za-z]+:)\/\/([^:\/]+):?(\d+)?(\/.*)?$/);
         if (urlParts === null) {
@@ -8590,6 +8668,22 @@ TinCan client library
         return new Blob(blobParts);
     };
 
+    /**
+        Method can be overloaded by an environment to do per-environment initialization
+
+        @method _initByEnvironment
+        @param {TinCanOptions} [cfg]
+        @private
+    */
+    TinCan.prototype._initByEnvironment = function () {
+        var localLRS = new TinCan.LRS({
+            endpoint: BROWSER_LOCAL_FAKE_ENDPOINT
+        });
+        this.log("adding local LRS");
+        this.addRecordStore(localLRS);
+        this.actor = TinCan.Agent.fromJSON("{\"mbox\":\"local@localhost\",\"name\":\"BrowserWrapper\"}");
+    };
+
     TinCan.Utils.stringToArrayBuffer = function (content, encoding) {
         /* global TextEncoder */
         var encoder;
@@ -8615,7 +8709,33 @@ TinCan client library
 
         return decoder.decode(content);
     };
+
+    /**
+     * Post a window message to listeners with the same origin
+     * @param {Object} msg
+     */
+    __postMessage = function (msg) {
+        // window.postMessage(msg, { targetOrigin: window.location.origin });
+        if (window.parent && window.parent.hasOwnProperty("postMessage")) {
+            window.parent.postMessage(msg);
+        }
+        log("posting message: "+JSON.stringify(msg, null, 2), LOG_SRC);
+    };
+
+    /**
+     * Marshal the cross-window message format for this xapi request
+     * @param {RequestOptions} cfg 
+     * @param {RequestHeaders} headers 
+     * @returns {TincanLocalRequest}
+     */
+    __messageRequest = function (cfg, headers) {
+        // return { _tincan: "request", url: "a" };
+        return { _tincan: "request", data: cfg.data, url: cfg.url, method: cfg.method, headers: headers, params: cfg.params };
+    };
+
 }());
+
+
 
 /*
  Copyright (c) 2010, Linden Research, Inc.

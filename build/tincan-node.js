@@ -205,6 +205,8 @@ code.google.com/p/crypto-js/wiki/License
     subInit.prototype = WordArray;
 }());
 
+/// <reference types="./types.d.ts" />
+
 /*!
     Copyright 2012 Rustici Software
 
@@ -269,14 +271,7 @@ var TinCan;
     /**
     @class TinCan
     @constructor
-    @param {Object} [options] Configuration used to initialize.
-        @param {String} [options.url] URL for determining launch provided
-            configuration options
-        @param {Array} [options.recordStores] list of pre-configured LRSes
-        @param {Object|TinCan.Agent} [options.actor] default actor
-        @param {Object|TinCan.Activity} [options.activity] default activity
-        @param {String} [options.registration] default registration
-        @param {Object|TinCan.Context} [options.context] default context
+    @param {TinCanOptions} [cfg] Configuration used to initialize.
     **/
     TinCan = function (cfg) {
         this.log("constructor");
@@ -348,7 +343,7 @@ var TinCan;
 
         /**
         @method init
-        @param {Object} [options] Configuration used to initialize (see TinCan constructor).
+        @param {TinCanOptions} [cfg] Configuration used to initialize (see TinCan constructor).
         */
         init: function (cfg) {
             this.log("init");
@@ -356,10 +351,12 @@ var TinCan;
 
             cfg = cfg || {};
 
+            this._initByEnvironment(cfg);
+
             if (cfg.hasOwnProperty("url") && cfg.url !== "") {
                 this._initFromQueryString(cfg.url);
             }
-
+            
             if (cfg.hasOwnProperty("recordStores") && cfg.recordStores !== undefined) {
                 for (i = 0; i < cfg.recordStores.length; i += 1) {
                     this.addRecordStore(cfg.recordStores[i]);
@@ -395,9 +392,20 @@ var TinCan;
         },
 
         /**
+        Method can be overloaded by an environment to do per-environment initialization
+
+        @method _initByEnvironment
+        @param {TinCanOptions} [cfg]
+        @private
+        */
+        _initByEnvironment: function () {
+            this.log("_initByEnvironment not overloaded (no environment-specific init)");
+        },
+
+        /**
         @method _initFromQueryString
         @param {String} url
-        @private
+        @private 
         */
         _initFromQueryString: function (url) {
             this.log("_initFromQueryString");

@@ -52,3 +52,19 @@ declare type RequestResultAsync = XMLHttpRequest;
 declare type RequestHeaders = Record<string, string>;
 
 declare type RequestFn = (fullUrl: string, headers: RequestHeaders, cfg: RequestOptions) => typeof cfg extends {callback: function} ? RequestResultAsync : RequestResultSync;
+
+declare interface TincanLocalMessage {
+    _tincan: "request" | "response";
+}
+
+declare interface TincanLocalRequest extends TincanLocalMessage {
+    _tincan: "request";
+    url: string;
+    method: string | undefined;
+    headers: RequestHeaders;
+    params: any;
+}
+
+declare interface TincanLocalResponse extends TincanLocalMessage {
+    _tincan: "response";
+}

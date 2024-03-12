@@ -40,7 +40,9 @@ TinCan client library
         __createAttachmentSegment,
         __delay,
         env = {},
-        log = TinCan.prototype.log;
+        log = TinCan.prototype.log,
+        __postMessage,
+        __messageRequest;
 
     if (typeof window === "undefined") {
         log("'window' not defined", LOG_SRC);
@@ -513,7 +515,7 @@ TinCan client library
             if (!async) {
                 throw new Error("unexpected non-async request for postMessage() handler");
             }
-            window.postMessage({_tincan: "request", url: cfg.url, method: cfg.method, headers: headers, params: cfg.params}, { targetOrigin: window.location.origin });
+            __postMessage(__messageRequest(cfg, headers));
         }
 
         control.fakeStatus = 200;
@@ -562,6 +564,12 @@ TinCan client library
 
         if (this.endpoint === BROWSER_LOCAL_FAKE_ENDPOINT) {
             this._makeRequest = localRequest;
+            this.saveStatement({
+                id: "http://adlnet.gov/expapi/verbs/initialized",
+                display: {
+                  "en-US": "initialized"
+                }
+              });
             return;
         }
 
@@ -767,4 +775,30 @@ TinCan client library
 
         return decoder.decode(content);
     };
+
+    /**
+     * Post a window message to listeners with the same origin
+     * @param {Object} msg
+     */
+    __postMessage = function (msg) {
+        // window.postMessage(msg, { targetOrigin: window.location.origin });
+        if (window.parent && window.parent.hasOwnProperty("postMessage")) {
+            window.parent.postMessage(msg);
+        }
+        log("posting message: "+JSON.stringify(msg, null, 2), LOG_SRC);
+    };
+
+    /**
+     * Marshal the cross-window message format for this xapi request
+     * @param {RequestOptions} cfg 
+     * @param {RequestHeaders} headers 
+     * @returns {TincanLocalRequest}
+     */
+    __messageRequest = function (cfg, headers) {
+        // return { _tincan: "request", url: "a" };
+        return { _tincan: "request", data: cfg.data, url: cfg.url, method: cfg.method, headers: headers, params: cfg.params };
+    };
+
 }());
+
+

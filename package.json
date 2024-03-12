@@ -1,6 +1,6 @@
 {
-  "name": "tincanjs",
-  "description": "Experience API (Tin Can API) Library",
+  "name": "@onlea/tincanjs",
+  "description": "Experience API (Tin Can API) Library (with support for parent-window LRS emulation)",
   "version": "0.50.0",
   "private": false,
   "license": "Apache-2.0",
