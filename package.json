@@ -20,11 +20,15 @@
     {
       "name": "Brian J. Miller",
       "email": "brian.miller@rusticisoftware.com"
+    },
+    {
+      "name": "Sebastian Hanlon",
+      "email": "sebastian@onlea.org"
     }
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/RusticiSoftware/TinCanJS.git"
+    "url": "https://github.com/sebastian-onlea/TinCanJS.git"
   },
   "keywords": [
     "tincan",
